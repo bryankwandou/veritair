@@ -1,65 +1,90 @@
-import Image from "next/image";
+import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button";
+import { Reveal } from "@/components/reveal";
+import { PricingCalculator } from "@/components/pricing-calculator";
+import { Hero } from "@/components/hero";
+import { HowItWorks } from "@/components/how-it-works";
+import { ProofStrip } from "@/components/proof-strip";
+
+const SCENES = [
+  {
+    title: "The road stops, the footpath doesn't",
+    body: "A village three kilometers past the last paved road isn't unreachable — it's just unreachable by anything with wheels. A drone flying from the nearest hub to a public pad at the village hall skips the footpath entirely.",
+  },
+  {
+    title: "A closed road isn't a closed sky",
+    body: "A protest or an accident can shut down a city's main artery for hours. Everything that depends on that road sits and waits. A drone was never using the road in the first place.",
+  },
+  {
+    title: "The alley the map got wrong",
+    body: "A gang too narrow for a bike, mismapped by consumer map software — couriers either give up or circle the block for twenty minutes. A pad at the entrance, inside the block's own security perimeter, fixes it permanently instead of once.",
+  },
+];
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <div className="flex flex-col">
+      <Hero />
+
+      <section className="mx-auto mt-28 max-w-5xl px-4">
+        <Reveal>
+          <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">
+            Three ways a delivery gets stuck on the ground
+          </h2>
+        </Reveal>
+        <div className="mt-10 grid gap-6 md:grid-cols-3">
+          {SCENES.map((scene, i) => (
+            <Reveal key={scene.title} delay={i * 0.1}>
+              <div className="h-full rounded-2xl border border-border bg-card p-6">
+                <div className="mb-4 flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 font-mono text-sm text-primary">
+                  0{i + 1}
+                </div>
+                <h3 className="font-medium">{scene.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{scene.body}</p>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+      </section>
+
+      <HowItWorks />
+
+      <section className="mx-auto mt-28 max-w-5xl px-4">
+        <Reveal>
+          <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">
+            Weight sets the price. Nothing else does, yet.
+          </h2>
+          <p className="mt-2 max-w-2xl text-muted-foreground">
+            Move the slider — this mirrors the price table an order is checked against before
+            it&apos;s accepted.
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+        </Reveal>
+        <Reveal delay={0.1} className="mt-8">
+          <PricingCalculator />
+        </Reveal>
+      </section>
+
+      <ProofStrip />
+
+      <section className="mx-auto mt-28 max-w-3xl px-4 pb-24 text-center">
+        <Reveal>
+          <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">
+            Book the first delivery yourself
+          </h2>
+          <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
+            Connect a Devnet wallet, pick a hub, and watch the order move from booked to
+            delivered — with a real transaction signature at every step.
+          </p>
+          <div className="mt-8 flex justify-center gap-3">
+            <Link href="/book" className={buttonVariants({ size: "lg" })}>
+              Book a delivery
+            </Link>
+            <Link href="/network" className={buttonVariants({ size: "lg", variant: "outline" })}>
+              See the network
+            </Link>
+          </div>
+        </Reveal>
+      </section>
     </div>
   );
 }

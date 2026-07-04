@@ -39,3 +39,20 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+.vercel
+
+# anchor / rust program build artifacts
+veritair_network/target/
+veritair_network/.anchor/
+**/*.so
+
+# brand-design scratch preview
+.brand-preview/
+
+# never commit local keypairs
+*-keypair.json
+*devnet.json
+src/app/globals.css.bak
+
+.env*
