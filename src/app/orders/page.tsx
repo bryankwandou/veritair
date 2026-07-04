@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 import { Button } from "@/components/ui/button";
@@ -64,7 +65,10 @@ export default function OrdersPage() {
         )}
         {orders.map((order, i) => (
           <Reveal key={order.pda_address} delay={i * 0.05}>
-            <div className="flex items-center justify-between rounded-xl border border-border bg-card p-4">
+            <Link
+              href={`/orders/${order.pda_address}`}
+              className="flex items-center justify-between rounded-xl border border-border bg-card p-4 transition-colors hover:bg-accent"
+            >
               <div>
                 <p className="font-medium">
                   {order.hub_name} → {order.pad_name}
@@ -80,13 +84,14 @@ export default function OrdersPage() {
                     href={solscanTxUrl(order.last_tx_signature)}
                     target="_blank"
                     rel="noreferrer"
+                    onClick={(e) => e.stopPropagation()}
                     className="text-xs text-primary underline underline-offset-4"
                   >
                     Tx
                   </a>
                 )}
               </div>
-            </div>
+            </Link>
           </Reveal>
         ))}
       </div>

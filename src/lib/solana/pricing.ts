@@ -40,3 +40,16 @@ export function lamportsToSol(lamports: number): number {
 export function formatSol(lamports: number): string {
   return `${lamportsToSol(lamports).toFixed(3)} SOL`;
 }
+
+// Illustrative only — Devnet has no real market price for SOL, so this is a
+// fixed reference rate purely so a USDC quote has something to derive from.
+// Labeled as such everywhere it's shown.
+const REFERENCE_USD_PER_SOL = 150;
+
+export function lamportsToUsdc(lamports: number): number {
+  return lamportsToSol(lamports) * REFERENCE_USD_PER_SOL;
+}
+
+export function formatUsdc(lamports: number): string {
+  return `${lamportsToUsdc(lamports).toFixed(2)} USDC`;
+}

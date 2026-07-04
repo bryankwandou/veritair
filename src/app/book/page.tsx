@@ -7,8 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Reveal } from "@/components/reveal";
-import { priceForWeight, formatSol } from "@/lib/solana/pricing";
-import { buildOrderPaymentTransaction } from "@/lib/solana/memo-order";
+import { priceForWeight, formatSol, formatUsdc, lamportsToUsdc } from "@/lib/solana/pricing";
+import {
+  buildOrderPaymentTransaction,
+  buildOrderPaymentTransactionUsdc,
+  type PaymentAsset,
+} from "@/lib/solana/memo-order";
 import { solscanTxUrl } from "@/lib/solana/constants";
 
 interface Pad {
@@ -31,6 +35,7 @@ export default function BookPage() {
   const [hubId, setHubId] = useState<string>("");
   const [padId, setPadId] = useState<string>("");
   const [grams, setGrams] = useState(1200);
+  const [asset, setAsset] = useState<PaymentAsset>("SOL");
   const [status, setStatus] = useState<"idle" | "sending" | "done" | "error">("idle");
   const [result, setResult] = useState<{ signature: string; code: string; orderPda: string } | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
@@ -65,17 +70,27 @@ export default function BookPage() {
     setStatus("sending");
     setErrorMsg("");
     try {
-      const tx = await buildOrderPaymentTransaction({
-        connection,
-        payer: publicKey,
-        lamports: price,
-        memoPayload: {
-          event: "order_created",
-          orderId: padId,
-          weightGrams: grams,
-          priceLamports: price,
-        },
-      });
+      const memoPayload = {
+        event: "order_created" as const,
+        orderId: padId,
+        weightGrams: grams,
+        priceLamports: price,
+      };
+
+      const tx =
+        asset === "SOL"
+          ? await buildOrderPaymentTransaction({
+              connection,
+              payer: publicKey,
+              lamports: price,
+              memoPayload,
+            })
+          : await buildOrderPaymentTransactionUsdc({
+              connection,
+              payer: publicKey,
+              usdcAmount: lamportsToUsdc(price),
+              memoPayload,
+            });
 
       const signature = await sendTransaction(tx, connection);
       await connection.confirmTransaction(signature, "confirmed");
@@ -196,10 +211,33 @@ export default function BookPage() {
           <Slider value={[grams]} onValueChange={(v) => setGrams(Array.isArray(v) ? v[0] : v)} min={100} max={10000} step={50} />
         </div>
 
+        <div>
+          <label className="mb-2 block text-sm font-medium">Pay with</label>
+          <div className="flex gap-2">
+            {(["SOL", "USDC"] as const).map((a) => (
+              <button
+                key={a}
+                onClick={() => setAsset(a)}
+                className={`rounded-full border px-3 py-1.5 text-sm transition-colors ${
+                  asset === a
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border hover:bg-accent"
+                }`}
+              >
+                {a === "SOL" ? "Devnet SOL" : "Devnet USDC"}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="flex items-center justify-between rounded-xl bg-muted p-4">
           <span className="text-sm text-muted-foreground">Total</span>
           <span className="font-mono text-lg font-semibold tabular-nums">
-            {price !== null ? formatSol(price) : "Out of range"}
+            {price === null
+              ? "Out of range"
+              : asset === "SOL"
+                ? formatSol(price)
+                : formatUsdc(price)}
           </span>
         </div>
 

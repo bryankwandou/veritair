@@ -5,6 +5,19 @@ import {
   Transaction,
   TransactionInstruction,
 } from "@solana/web3.js";
+import {
+  createAssociatedTokenAccountIdempotentInstruction,
+  createTransferCheckedInstruction,
+  getAssociatedTokenAddressSync,
+} from "@solana/spl-token";
+
+// Circle's official Devnet USDC mint (6 decimals).
+export const USDC_DEVNET_MINT =
+  process.env.NEXT_PUBLIC_USDC_DEVNET_MINT ??
+  "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU";
+export const USDC_DECIMALS = 6;
+
+export type PaymentAsset = "SOL" | "USDC";
 
 // This is the fallback wired up when the native Anchor/Rust toolchain
 // couldn't build on this machine (see PROOF.md). Every order lifecycle
@@ -59,6 +72,44 @@ export function buildOrderPaymentTransaction(params: {
         lastValidBlockHeight;
       return tx;
     });
+}
+
+export function buildOrderPaymentTransactionUsdc(params: {
+  connection: Connection;
+  payer: PublicKey;
+  usdcAmount: number; // whole-token units, e.g. 1.25 USDC
+  memoPayload: OrderMemoPayload;
+}): Promise<Transaction> {
+  const { connection, payer, usdcAmount, memoPayload } = params;
+  const mint = new PublicKey(USDC_DEVNET_MINT);
+  const vault = new PublicKey(PLATFORM_VAULT);
+
+  const payerAta = getAssociatedTokenAddressSync(mint, payer);
+  const vaultAta = getAssociatedTokenAddressSync(mint, vault);
+
+  const rawAmount = BigInt(Math.round(usdcAmount * 10 ** USDC_DECIMALS));
+
+  const tx = new Transaction();
+  tx.add(
+    createAssociatedTokenAccountIdempotentInstruction(payer, vaultAta, vault, mint)
+  );
+  tx.add(
+    createTransferCheckedInstruction(
+      payerAta,
+      mint,
+      vaultAta,
+      payer,
+      rawAmount,
+      USDC_DECIMALS
+    )
+  );
+  tx.add(memoInstruction(JSON.stringify({ ...memoPayload, asset: "USDC" })));
+
+  return connection.getLatestBlockhash().then(({ blockhash }) => {
+    tx.recentBlockhash = blockhash;
+    tx.feePayer = payer;
+    return tx;
+  });
 }
 
 export function buildMemoOnlyTransaction(params: {
