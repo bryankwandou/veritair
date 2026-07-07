@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link000, Link001 } from "@/components/ui/skiper-ui/skiper40";
 
 export function SiteFooter() {
   return (
@@ -13,31 +13,26 @@ export function SiteFooter() {
         </div>
 
         <div className="flex gap-12">
-          <div className="space-y-2">
+          <div className="space-y-3">
             <p className="font-medium text-foreground">Network</p>
-            <Link href="/network" className="block hover:text-foreground">
+            <Link000 href="/network" className="block w-fit hover:text-foreground">
               Hubs &amp; pads
-            </Link>
-            <Link href="/book" className="block hover:text-foreground">
+            </Link000>
+            <Link000 href="/book" className="block w-fit hover:text-foreground">
               Book a delivery
-            </Link>
-            <Link href="/orders" className="block hover:text-foreground">
+            </Link000>
+            <Link000 href="/orders" className="block w-fit hover:text-foreground">
               Track an order
-            </Link>
+            </Link000>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-3">
             <p className="font-medium text-foreground">Verify</p>
-            <Link href="/proof" className="block hover:text-foreground">
+            <Link000 href="/proof" className="block w-fit hover:text-foreground">
               Proof on Devnet
-            </Link>
-            <a
-              href="https://github.com/nayrbryanGaming/veritair"
-              target="_blank"
-              rel="noreferrer"
-              className="block hover:text-foreground"
-            >
+            </Link000>
+            <Link001 href="https://github.com/nayrbryanGaming/veritair" className="block w-fit hover:text-foreground">
               Source on GitHub
-            </a>
+            </Link001>
           </div>
         </div>
       </div>

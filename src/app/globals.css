@@ -125,8 +125,38 @@
   }
   body {
     @apply bg-background text-foreground;
+    position: relative;
   }
   html {
     @apply font-sans;
   }
+  ::selection {
+    background: color-mix(in oklch, var(--primary), transparent 70%);
+    color: var(--foreground);
+  }
+}
+
+/* A fine grain layer plus a faint altitude-contour grid, fixed behind all
+   content. This is the site's own recurring visual signature rather than a
+   flat single-color background, carried from the hero into every page. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.5;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cg fill='none' stroke='%23888' stroke-opacity='0.06' stroke-width='1'%3E%3Cpath d='M0 30 Q30 10 60 30 T120 30'/%3E%3Cpath d='M0 60 Q30 40 60 60 T120 60'/%3E%3Cpath d='M0 90 Q30 70 60 90 T120 90'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 480px 480px;
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.035;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='90'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
