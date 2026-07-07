@@ -4,6 +4,7 @@ import { SolanaProvider } from "@/components/providers/solana-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { DispatchAssistant } from "@/components/dispatch-assistant";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -38,6 +39,7 @@ export default function RootLayout({
             <SiteHeader />
             <main className="flex-1">{children}</main>
             <SiteFooter />
+            <DispatchAssistant />
           </TooltipProvider>
         </SolanaProvider>
       </body>

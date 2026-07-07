@@ -8,7 +8,8 @@ export async function GET(
   const { address } = await params;
   const sql = db();
   const rows = await sql.query(
-    `SELECT o.*, p.name AS pad_name, p.kind AS pad_kind, h.name AS hub_name, h.authority_wallet AS hub_authority
+    `SELECT o.*, p.name AS pad_name, p.kind AS pad_kind, p.lat AS pad_lat, p.lng AS pad_lng,
+            h.name AS hub_name, h.authority_wallet AS hub_authority, h.lat AS hub_lat, h.lng AS hub_lng
      FROM orders_mirror o
      JOIN pads_mirror p ON p.pda_address = o.pad_pda
      JOIN hubs_mirror h ON h.pda_address = p.hub_pda

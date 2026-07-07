@@ -5,6 +5,7 @@ import { PricingCalculator } from "@/components/pricing-calculator";
 import { Hero } from "@/components/hero";
 import { HowItWorks } from "@/components/how-it-works";
 import { ProofStrip } from "@/components/proof-strip";
+import { NetworkStats } from "@/components/network-stats";
 
 const SCENES = [
   {
@@ -25,6 +26,8 @@ export default function Home() {
   return (
     <div className="flex flex-col">
       <Hero />
+
+      <NetworkStats />
 
       <section className="mx-auto mt-28 max-w-5xl px-4">
         <Reveal>

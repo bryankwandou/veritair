@@ -19,6 +19,18 @@ function dotIcon(color: string) {
 const hubIcon = dotIcon("var(--color-primary, #2f6f8f)");
 const padIcon = dotIcon("#94a3b8");
 
+const droneIcon = L.divIcon({
+  className: "",
+  html: `<div style="display:flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:9999px;background:#0f172a;border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.35)">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round">
+      <circle cx="5" cy="5" r="2.4"/><circle cx="19" cy="5" r="2.4"/><circle cx="5" cy="19" r="2.4"/><circle cx="19" cy="19" r="2.4"/>
+      <rect x="9" y="9.5" width="6" height="5" rx="1.4" fill="white" stroke="none"/>
+    </svg>
+  </div>`,
+  iconSize: [26, 26],
+  iconAnchor: [13, 13],
+});
+
 export interface MapHub {
   pda_address: string;
   name: string;
@@ -37,11 +49,13 @@ export function NetworkMap({
   hubs,
   pads,
   route,
+  dronePosition,
   height = 360,
 }: {
   hubs: MapHub[];
   pads: MapPad[];
   route?: [[number, number], [number, number]];
+  dronePosition?: [number, number];
   height?: number;
 }) {
   const points = [...hubs, ...pads];
@@ -70,6 +84,11 @@ export function NetworkMap({
           </Marker>
         ))}
         {route && <Polyline positions={route} pathOptions={{ color: "#2f6f8f", dashArray: "6 6" }} />}
+        {dronePosition && (
+          <Marker position={dronePosition} icon={droneIcon}>
+            <Popup>Drone — simulated position</Popup>
+          </Marker>
+        )}
       </MapContainer>
     </div>
   );

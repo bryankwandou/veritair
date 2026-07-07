@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Reveal } from "@/components/reveal";
 import { formatSol } from "@/lib/solana/pricing";
 import { solscanTxUrl, ORDER_STATUSES } from "@/lib/solana/constants";
+import { FlightTracker } from "@/components/flight-tracker";
 
 interface OrderDetail {
   pda_address: string;
@@ -17,6 +18,11 @@ interface OrderDetail {
   status: string;
   attempt_count: number;
   last_tx_signature: string;
+  hub_lat: number;
+  hub_lng: number;
+  pad_lat: number;
+  pad_lng: number;
+  updated_at: string;
 }
 
 export default function OrderDetailPage({ params }: { params: Promise<{ address: string }> }) {
@@ -35,6 +41,16 @@ export default function OrderDetailPage({ params }: { params: Promise<{ address:
 
   useEffect(() => {
     load();
+    // Keep the page current while the order is still moving — a recipient
+    // watching this screen shouldn't need to refresh to see arrival.
+    const id = setInterval(() => {
+      setOrder((current) => {
+        if (current && ["Delivered", "Cancelled", "Expired"].includes(current.status)) return current;
+        load();
+        return current;
+      });
+    }, 10_000);
+    return () => clearInterval(id);
   }, [address]);
 
   async function confirmDelivery() {
@@ -82,6 +98,21 @@ export default function OrderDetailPage({ params }: { params: Promise<{ address:
           <div key={s} className={`h-1.5 flex-1 rounded-full ${i <= stepIndex ? "bg-primary" : "bg-muted"}`} />
         ))}
       </Reveal>
+
+      {order.hub_lat != null && order.pad_lat != null && (
+        <Reveal delay={0.08} className="mt-8">
+          <FlightTracker
+            hubLat={order.hub_lat}
+            hubLng={order.hub_lng}
+            padLat={order.pad_lat}
+            padLng={order.pad_lng}
+            hubName={order.hub_name}
+            padName={order.pad_name}
+            status={order.status}
+            statusChangedAt={order.updated_at}
+          />
+        </Reveal>
+      )}
 
       {order.status === "Arrived" || order.status === "Locked" ? (
         <Reveal delay={0.1} className="mt-8 rounded-2xl border border-border bg-card p-6">
