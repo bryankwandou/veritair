@@ -3,16 +3,21 @@
 import { useEffect, useState } from "react";
 import { Reveal } from "@/components/reveal";
 import { Badge } from "@/components/ui/badge";
+import { NetworkMap } from "@/components/network-map-client";
 
 interface Pad {
   pda_address: string;
   name: string;
   kind: "public" | "housing";
+  lat: number;
+  lng: number;
 }
 
 interface Hub {
   pda_address: string;
   name: string;
+  lat: number;
+  lng: number;
   capacity: number;
   active_drones: number;
   pads: Pad[];
@@ -38,6 +43,15 @@ export default function NetworkPage() {
           open areas, housing pads inside a gated perimeter.
         </p>
       </Reveal>
+
+      {!loading && hubs.length > 0 && (
+        <Reveal delay={0.05} className="mt-8">
+          <NetworkMap
+            hubs={hubs.map((h) => ({ pda_address: h.pda_address, name: h.name, lat: h.lat, lng: h.lng }))}
+            pads={hubs.flatMap((h) => h.pads)}
+          />
+        </Reveal>
+      )}
 
       <div className="mt-10 space-y-4">
         {loading && <p className="text-sm text-muted-foreground">Loading the network…</p>}

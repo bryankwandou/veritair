@@ -14,15 +14,21 @@ import {
   type PaymentAsset,
 } from "@/lib/solana/memo-order";
 import { solscanTxUrl } from "@/lib/solana/constants";
+import { estimateFlight } from "@/lib/solana/flight";
+import { NetworkMap } from "@/components/network-map-client";
 
 interface Pad {
   pda_address: string;
   name: string;
   kind: "public" | "housing";
+  lat: number;
+  lng: number;
 }
 interface Hub {
   pda_address: string;
   name: string;
+  lat: number;
+  lng: number;
   pads: Pad[];
 }
 
@@ -58,6 +64,13 @@ export default function BookPage() {
   const price = useMemo(
     () => (currentPad ? priceForWeight(grams, currentPad.kind) : null),
     [grams, currentPad]
+  );
+  const flight = useMemo(
+    () =>
+      currentHub && currentPad
+        ? estimateFlight(currentHub.lat, currentHub.lng, currentPad.lat, currentPad.lng)
+        : null,
+    [currentHub, currentPad]
   );
 
   async function handleBook() {
@@ -197,6 +210,23 @@ export default function BookPage() {
                   {p.name}
                 </button>
               ))}
+            </div>
+          </div>
+        )}
+
+        {currentHub && currentPad && flight && (
+          <div className="space-y-3">
+            <NetworkMap
+              hubs={[{ pda_address: currentHub.pda_address, name: currentHub.name, lat: currentHub.lat, lng: currentHub.lng }]}
+              pads={[{ pda_address: currentPad.pda_address, name: currentPad.name, lat: currentPad.lat, lng: currentPad.lng, kind: currentPad.kind }]}
+              route={[[currentHub.lat, currentHub.lng], [currentPad.lat, currentPad.lng]]}
+              height={220}
+            />
+            <div className="flex items-center justify-between rounded-lg bg-muted px-4 py-2 text-sm">
+              <span className="text-muted-foreground">Straight-line flight path</span>
+              <span className="font-mono tabular-nums">
+                {flight.distanceKm.toFixed(1)} km · ~{flight.etaMinutes} min
+              </span>
             </div>
           </div>
         )}
