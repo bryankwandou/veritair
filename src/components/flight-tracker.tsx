@@ -41,7 +41,7 @@ export function FlightTracker({
   );
 
   const progress = useMemo(() => {
-    if (status === "Booked" || status === "Assigned") return 0;
+    if (["Booked", "Assigned", "Cancelled", "Expired"].includes(status)) return 0;
     if (status !== "InFlight") return 1;
     const elapsedMin = (now - new Date(statusChangedAt).getTime()) / 60_000;
     // Hold at 97% until the operator actually marks arrival — the simulation
@@ -62,16 +62,20 @@ export function FlightTracker({
         hubs={[{ pda_address: "hub", name: hubName, lat: hubLat, lng: hubLng }]}
         pads={[{ pda_address: "pad", name: padName, lat: padLat, lng: padLng, kind: "public" }]}
         route={[[hubLat, hubLng], [padLat, padLng]]}
-        dronePosition={status === "Booked" || status === "Assigned" ? undefined : dronePosition}
+        dronePosition={
+          ["Booked", "Assigned", "Cancelled", "Expired"].includes(status) ? undefined : dronePosition
+        }
         height={280}
       />
       <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-muted px-4 py-2 text-sm">
         <span className="text-muted-foreground">
           {status === "InFlight"
             ? "In flight — simulated position, updates every second"
-            : status === "Booked" || status === "Assigned"
+            : ["Booked", "Assigned"].includes(status)
               ? "Waiting at the hub"
-              : "At the landing pad"}
+              : ["Cancelled", "Expired"].includes(status)
+                ? "Never dispatched — order closed at the hub"
+                : "At the landing pad"}
         </span>
         <span className="font-mono tabular-nums">
           {flight.distanceKm.toFixed(1)} km

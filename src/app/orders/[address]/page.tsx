@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Reveal } from "@/components/reveal";
 import { formatSol } from "@/lib/solana/pricing";
-import { solscanTxUrl, ORDER_STATUSES } from "@/lib/solana/constants";
+import { solscanTxUrl } from "@/lib/solana/constants";
 import { FlightTracker } from "@/components/flight-tracker";
 
 interface OrderDetail {
@@ -69,6 +69,18 @@ export default function OrderDetailPage({ params }: { params: Promise<{ address:
     await load();
   }
 
+  async function cancelOrder() {
+    setMessage("");
+    const res = await fetch(`/api/orders/${address}/transition`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "cancel" }),
+    });
+    const data = await res.json();
+    setMessage(res.ok ? "Order cancelled. The escrow refund path is recorded." : data.message);
+    await load();
+  }
+
   if (loading) {
     return <div className="mx-auto max-w-lg px-4 py-24 text-center text-muted-foreground">Loading order…</div>;
   }
@@ -77,7 +89,21 @@ export default function OrderDetailPage({ params }: { params: Promise<{ address:
     return <div className="mx-auto max-w-lg px-4 py-24 text-center text-muted-foreground">Order not found.</div>;
   }
 
-  const stepIndex = ORDER_STATUSES.indexOf(order.status as (typeof ORDER_STATUSES)[number]);
+  // Locked sits at the Arrived stage (the parcel is at the pad, just gated);
+  // Cancelled/Expired never got past booking. Mapping them explicitly keeps
+  // the progress bar from claiming a delivery that didn't happen.
+  const PROGRESS_STAGE: Record<string, number> = {
+    Booked: 0,
+    Assigned: 1,
+    InFlight: 2,
+    Arrived: 3,
+    Locked: 3,
+    Delivered: 4,
+    Cancelled: 0,
+    Expired: 0,
+  };
+  const stepIndex = PROGRESS_STAGE[order.status] ?? 0;
+  const isTerminatedEarly = order.status === "Cancelled" || order.status === "Expired";
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-16">
@@ -93,10 +119,27 @@ export default function OrderDetailPage({ params }: { params: Promise<{ address:
         </p>
       </Reveal>
 
-      <Reveal delay={0.05} className="mt-8 flex gap-1">
-        {["Booked", "Assigned", "InFlight", "Arrived", "Delivered"].map((s, i) => (
-          <div key={s} className={`h-1.5 flex-1 rounded-full ${i <= stepIndex ? "bg-primary" : "bg-muted"}`} />
-        ))}
+      <Reveal delay={0.05} className="mt-8">
+        <div className="flex gap-1">
+          {["Booked", "Assigned", "InFlight", "Arrived", "Delivered"].map((s, i) => (
+            <div
+              key={s}
+              className={`h-1.5 flex-1 rounded-full ${
+                i <= stepIndex
+                  ? isTerminatedEarly
+                    ? "bg-destructive/60"
+                    : "bg-primary"
+                  : "bg-muted"
+              }`}
+            />
+          ))}
+        </div>
+        {isTerminatedEarly && (
+          <p className="mt-2 text-sm text-muted-foreground">
+            This order was {order.status.toLowerCase()} before dispatch — the payment path back
+            to the sender is recorded in the transaction history below.
+          </p>
+        )}
       </Reveal>
 
       {order.hub_lat != null && order.pad_lat != null && (
@@ -134,6 +177,24 @@ export default function OrderDetailPage({ params }: { params: Promise<{ address:
           {message && <p className="mt-2 text-sm text-muted-foreground">{message}</p>}
         </Reveal>
       ) : null}
+
+      {order.status === "Booked" && (
+        <Reveal delay={0.1} className="mt-8 rounded-2xl border border-border bg-card p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="font-medium">Cancel this order</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Still possible while no drone has been assigned. After dispatch it can&apos;t be
+                pulled back.
+              </p>
+            </div>
+            <Button variant="destructive" onClick={cancelOrder}>
+              Cancel order
+            </Button>
+          </div>
+          {message && <p className="mt-2 text-sm text-muted-foreground">{message}</p>}
+        </Reveal>
+      )}
 
       {order.last_tx_signature && (
         <Reveal delay={0.15} className="mt-8">
