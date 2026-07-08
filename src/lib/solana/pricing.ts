@@ -22,15 +22,69 @@ export const WEIGHT_TIERS: WeightTier[] = [
 
 export const MAX_BOOKABLE_GRAMS = 10_000;
 
+// Service plans, like a real expedition's rate card. The multiplier applies
+// to the weight-tier price; the SLA describes dispatch priority at the hub,
+// not flight speed — a drone flies the same route either way.
+export type ServiceTier = "regular" | "sameday" | "express" | "vip";
+
+export interface ServicePlan {
+  id: ServiceTier;
+  name: string;
+  multiplier: number;
+  sla: string;
+  detail: string;
+}
+
+export const SERVICE_PLANS: ServicePlan[] = [
+  {
+    id: "regular",
+    name: "Regular",
+    multiplier: 1,
+    sla: "Dispatched within 24 hours",
+    detail: "Joins the hub's next scheduled batch. The cheapest way to reach anywhere on the network.",
+  },
+  {
+    id: "sameday",
+    name: "Same-day",
+    multiplier: 1.35,
+    sla: "Dispatched the same day",
+    detail: "Guaranteed to leave the hub before the day's last flight window.",
+  },
+  {
+    id: "express",
+    name: "Express",
+    multiplier: 1.75,
+    sla: "Dispatched within 2 hours",
+    detail: "Jumps the batch queue. The next available drone takes it.",
+  },
+  {
+    id: "vip",
+    name: "VIP",
+    multiplier: 2.5,
+    sla: "Immediate dispatch, dedicated drone",
+    detail: "A drone is reserved on booking and flies this parcel alone — nothing shares the flight.",
+  },
+];
+
+export function planById(id: string): ServicePlan {
+  return SERVICE_PLANS.find((p) => p.id === id) ?? SERVICE_PLANS[0];
+}
+
 export function tierForWeight(grams: number): WeightTier | null {
   if (grams <= 0 || grams > MAX_BOOKABLE_GRAMS) return null;
   return WEIGHT_TIERS.find((t) => t.maxGrams !== null && grams <= t.maxGrams) ?? null;
 }
 
-export function priceForWeight(grams: number, kind: PadKind): number | null {
+export function priceForWeight(
+  grams: number,
+  kind: PadKind,
+  service: ServiceTier = "regular"
+): number | null {
   const tier = tierForWeight(grams);
   if (!tier) return null;
-  return kind === "housing" ? tier.basePriceLamports + tier.housingSurchargeLamports : tier.basePriceLamports;
+  const base =
+    kind === "housing" ? tier.basePriceLamports + tier.housingSurchargeLamports : tier.basePriceLamports;
+  return Math.round(base * planById(service).multiplier);
 }
 
 export function lamportsToSol(lamports: number): number {

@@ -30,15 +30,21 @@ export async function POST(request: NextRequest) {
   let networkContext = "";
   try {
     const sql = db();
-    const hubs = await sql.query(
-      `SELECT h.name, h.active_drones, h.capacity,
-              COALESCE(string_agg(p.name || ' (' || p.kind || ')', ', '), 'no pads yet') AS pads
-       FROM hubs_mirror h LEFT JOIN pads_mirror p ON p.hub_pda = h.pda_address
-       GROUP BY h.pda_address ORDER BY h.name`
-    );
+    // Counts and city names only — with 3,000+ pads, listing every pad
+    // would blow the prompt budget.
+    const [totals, cities] = await Promise.all([
+      sql.query(
+        `SELECT (SELECT count(*) FROM hubs_mirror) AS hubs,
+                (SELECT count(*) FROM pads_mirror) AS pads,
+                (SELECT count(*) FROM drones_mirror) AS drones`
+      ),
+      sql.query(`SELECT name FROM hubs_mirror ORDER BY name ASC LIMIT 100`),
+    ]);
+    const t = totals[0];
     networkContext =
-      "\n\nCurrent live network:\n" +
-      hubs.map((h) => `- ${h.name}: ${h.active_drones}/${h.capacity} drones, pads: ${h.pads}`).join("\n");
+      `\n\nCurrent live network: ${t.hubs} hubs, ${t.pads} landing pads, ${t.drones} drones across Indonesia.` +
+      ` Hub cities include: ${cities.map((c) => String(c.name).replace(/ Hub$/, "")).join(", ")}.` +
+      `\nService plans: Regular (base price, dispatched within 24h), Same-day (+35%), Express (+75%, dispatched within 2 hours), VIP (2.5x, immediate dispatch on a dedicated drone).`;
   } catch {
     // The assistant still works without live data; it just answers generally.
   }

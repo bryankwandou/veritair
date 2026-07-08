@@ -5,9 +5,15 @@ import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Reveal } from "@/components/reveal";
-import { priceForWeight, formatSol, formatUsdc, lamportsToUsdc } from "@/lib/solana/pricing";
+import {
+  priceForWeight,
+  formatSol,
+  formatUsdc,
+  lamportsToUsdc,
+  SERVICE_PLANS,
+  type ServiceTier,
+} from "@/lib/solana/pricing";
 import {
   buildOrderPaymentTransaction,
   buildOrderPaymentTransactionUsdc,
@@ -29,7 +35,6 @@ interface Hub {
   name: string;
   lat: number;
   lng: number;
-  pads: Pad[];
 }
 
 export default function BookPage() {
@@ -39,31 +44,45 @@ export default function BookPage() {
 
   const [hubs, setHubs] = useState<Hub[]>([]);
   const [hubId, setHubId] = useState<string>("");
+  const [pads, setPads] = useState<Pad[]>([]);
   const [padId, setPadId] = useState<string>("");
   const [grams, setGrams] = useState(1200);
+  const [service, setService] = useState<ServiceTier>("regular");
   const [asset, setAsset] = useState<PaymentAsset>("SOL");
   const [status, setStatus] = useState<"idle" | "sending" | "done" | "error">("idle");
   const [result, setResult] = useState<{ signature: string; code: string; orderPda: string } | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
-    fetch("/api/hubs")
+    // Light form: names and coordinates only — the network has 3,000+ pads,
+    // so pads load per hub instead of all at once.
+    fetch("/api/hubs?light=1&limit=300")
       .then((r) => r.json())
       .then((data) => {
         const list: Hub[] = data.hubs ?? [];
         setHubs(list);
-        if (list.length > 0) {
-          setHubId(list[0].pda_address);
-          if (list[0].pads.length > 0) setPadId(list[0].pads[0].pda_address);
-        }
+        if (list.length > 0) setHubId(list[0].pda_address);
       });
   }, []);
 
+  useEffect(() => {
+    if (!hubId) return;
+    setPads([]);
+    setPadId("");
+    fetch(`/api/pads?hub=${encodeURIComponent(hubId)}`)
+      .then((r) => r.json())
+      .then((data) => {
+        const list: Pad[] = data.pads ?? [];
+        setPads(list);
+        if (list.length > 0) setPadId(list[0].pda_address);
+      });
+  }, [hubId]);
+
   const currentHub = hubs.find((h) => h.pda_address === hubId);
-  const currentPad = currentHub?.pads.find((p) => p.pda_address === padId);
+  const currentPad = pads.find((p) => p.pda_address === padId);
   const price = useMemo(
-    () => (currentPad ? priceForWeight(grams, currentPad.kind) : null),
-    [grams, currentPad]
+    () => (currentPad ? priceForWeight(grams, currentPad.kind, service) : null),
+    [grams, currentPad, service]
   );
   const flight = useMemo(
     () =>
@@ -88,6 +107,7 @@ export default function BookPage() {
         orderId: padId,
         weightGrams: grams,
         priceLamports: price,
+        service,
       };
 
       const tx =
@@ -116,6 +136,7 @@ export default function BookPage() {
           padPda: padId,
           weightGrams: grams,
           padKind: currentPad.kind,
+          serviceTier: service,
           txSignature: signature,
         }),
       });
@@ -163,56 +184,48 @@ export default function BookPage() {
       <Reveal>
         <h1 className="text-3xl font-semibold tracking-tight">Book a delivery</h1>
         <p className="mt-2 text-muted-foreground">
-          Pick a hub and a pad, set the weight, and sign one transaction to send it.
+          Pick a hub city and a pad, set the weight, choose a plan, and sign one transaction.
         </p>
       </Reveal>
 
       <Reveal delay={0.05} className="mt-8 space-y-6 rounded-2xl border border-border bg-card p-6">
-        <div>
-          <label className="mb-2 block text-sm font-medium">Hub</label>
-          <div className="flex flex-wrap gap-2">
-            {hubs.map((h) => (
-              <button
-                key={h.pda_address}
-                onClick={() => {
-                  setHubId(h.pda_address);
-                  setPadId(h.pads[0]?.pda_address ?? "");
-                }}
-                className={`rounded-full border px-3 py-1.5 text-sm transition-colors ${
-                  hubId === h.pda_address
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-border hover:bg-accent"
-                }`}
-              >
-                {h.name}
-              </button>
-            ))}
-            {hubs.length === 0 && (
-              <p className="text-sm text-muted-foreground">No hubs yet — register one from the operator console.</p>
-            )}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label htmlFor="hub-select" className="mb-2 block text-sm font-medium">
+              Hub city ({hubs.length})
+            </label>
+            <select
+              id="hub-select"
+              className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm"
+              value={hubId}
+              onChange={(e) => setHubId(e.target.value)}
+            >
+              {hubs.map((h) => (
+                <option key={h.pda_address} value={h.pda_address}>
+                  {h.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="pad-select" className="mb-2 block text-sm font-medium">
+              Landing pad ({pads.length})
+            </label>
+            <select
+              id="pad-select"
+              className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm"
+              value={padId}
+              onChange={(e) => setPadId(e.target.value)}
+              disabled={pads.length === 0}
+            >
+              {pads.map((p) => (
+                <option key={p.pda_address} value={p.pda_address}>
+                  {p.name} · {p.kind === "housing" ? "housing" : "public"}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
-
-        {currentHub && (
-          <div>
-            <label className="mb-2 block text-sm font-medium">Landing pad</label>
-            <div className="flex flex-wrap gap-2">
-              {currentHub.pads.map((p) => (
-                <button
-                  key={p.pda_address}
-                  onClick={() => setPadId(p.pda_address)}
-                  className={`rounded-full border px-3 py-1.5 text-sm transition-colors ${
-                    padId === p.pda_address
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border hover:bg-accent"
-                  }`}
-                >
-                  {p.name}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
 
         {currentHub && currentPad && flight && (
           <div className="space-y-3">
@@ -242,6 +255,36 @@ export default function BookPage() {
         </div>
 
         <div>
+          <label className="mb-2 block text-sm font-medium">Service plan</label>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {SERVICE_PLANS.map((plan) => {
+              const planPrice = currentPad ? priceForWeight(grams, currentPad.kind, plan.id) : null;
+              const active = service === plan.id;
+              return (
+                <button
+                  key={plan.id}
+                  onClick={() => setService(plan.id)}
+                  className={`rounded-xl border p-3 text-left transition-colors ${
+                    active ? "border-primary bg-primary/5" : "border-border hover:bg-accent"
+                  }`}
+                >
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-sm font-medium">{plan.name}</span>
+                    <span className="font-mono text-xs tabular-nums text-muted-foreground">
+                      {planPrice !== null ? formatSol(planPrice) : "—"}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">{plan.sla}</p>
+                </button>
+              );
+            })}
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            {SERVICE_PLANS.find((p) => p.id === service)?.detail}
+          </p>
+        </div>
+
+        <div>
           <label className="mb-2 block text-sm font-medium">Pay with</label>
           <div className="flex gap-2">
             {(["SOL", "USDC"] as const).map((a) => (
@@ -261,7 +304,9 @@ export default function BookPage() {
         </div>
 
         <div className="flex items-center justify-between rounded-xl bg-muted p-4">
-          <span className="text-sm text-muted-foreground">Total</span>
+          <span className="text-sm text-muted-foreground">
+            Total · {SERVICE_PLANS.find((p) => p.id === service)?.name}
+          </span>
           <span className="font-mono text-lg font-semibold tabular-nums">
             {price === null
               ? "Out of range"

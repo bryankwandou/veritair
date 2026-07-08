@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Reveal } from "@/components/reveal";
-import { formatSol } from "@/lib/solana/pricing";
+import { formatSol, planById } from "@/lib/solana/pricing";
 import { solscanTxUrl } from "@/lib/solana/constants";
 import { FlightTracker } from "@/components/flight-tracker";
 
@@ -23,6 +23,7 @@ interface OrderDetail {
   pad_lat: number;
   pad_lng: number;
   updated_at: string;
+  service_tier?: string;
 }
 
 export default function OrderDetailPage({ params }: { params: Promise<{ address: string }> }) {
@@ -115,7 +116,8 @@ export default function OrderDetailPage({ params }: { params: Promise<{ address:
           <Badge variant="secondary">{order.status}</Badge>
         </div>
         <p className="mt-1 text-sm text-muted-foreground">
-          {order.weight_grams.toLocaleString()} g · {formatSol(order.price_lamports)}
+          {order.weight_grams.toLocaleString()} g · {formatSol(order.price_lamports)} ·{" "}
+          {planById(order.service_tier ?? "regular").name} — {planById(order.service_tier ?? "regular").sla.toLowerCase()}
         </p>
       </Reveal>
 

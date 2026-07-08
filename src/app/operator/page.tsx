@@ -43,7 +43,7 @@ export default function OperatorPage() {
 
   async function refresh() {
     const [hubsRes, ordersRes] = await Promise.all([
-      fetch("/api/hubs").then((r) => r.json()),
+      fetch("/api/hubs?light=1&limit=300").then((r) => r.json()),
       publicKey ? fetch(`/api/operator/orders`).then((r) => r.json()) : Promise.resolve({ orders: [] }),
     ]);
     setHubs(hubsRes.hubs ?? []);
