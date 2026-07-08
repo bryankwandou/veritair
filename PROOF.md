@@ -69,6 +69,25 @@ Bugs found and fixed during this hardening pass, for the record:
 - The lockout could be bypassed by submitting the correct code while locked. Confirm now
   requires `Arrived` status outright.
 
+## Nationwide network + service plans — 8/8 checks, run against production
+
+A third verification pass after the network was scaled to national size and service plans
+were added:
+
+- **84 hubs and 3,244 landing pads** are live, generated deterministically (seeded PRNG)
+  around 81 verified Indonesian city-center anchors, from Banda Aceh to Merauke.
+- **No-sea guarantee, by construction and then verified**: every generated pad is within a
+  small radius of its city anchor (0.006° ≈ 650 m for coastal cities, up to 0.03° ≈ 3.3 km
+  inland). The verification pass measured every one of the 3,240 generated pads against its
+  nearest anchor: maximum distance 3.34 km, zero outliers. The four original hand-placed
+  demo pads sit at individually verified inland coordinates and are documented separately.
+- **Service plans** (Regular ×1, Same-day ×1.35, Express ×1.75, VIP ×2.5) are priced
+  server-side from the same table the client previews — a modified client cannot pick its
+  own price. Verified live: a 1.2 kg housing-pad VIP booking was quoted 0.070 SOL by the
+  server ((0.025 + 0.003) × 2.5), paid with a real Devnet transaction, recorded with
+  `service_tier = vip`, and delivered end to end:
+  `5re73eRXiasCaLukxu1YVjM7rAji9vUSqxdDNTsaoJF4CWxuwUrMv1wASFSriwBNnxbCUQuGMDUwPukCq2kn8rcq`
+
 ## Why this isn't the original on-chain-program plan
 
 The project was designed around a custom Anchor program (`veritair_network`) that would enforce
