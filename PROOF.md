@@ -29,6 +29,46 @@ Query the live order yourself:
 GET https://veritair.vercel.app/api/orders/order_b5c4768e3de6bd65
 ```
 
+## Full state-machine verification — 20/20 checks, run against production
+
+A second, exhaustive verification pass was run later against the live deployment, covering
+every legal transition, every guard that must reject an illegal one, and both terminal paths.
+All twenty checks passed. The two bookings in this run are real Devnet transactions:
+
+- **Order 1** (delivered after a lockout):
+  `47FYvDduZNDxLmFd8ivGCsYaySkfj2Bm6xhnYBabuF9maSKVQU9WS7adH4fDroeJv3BkbNHdKcGj21rUxsT11ke`
+- **Order 2** (cancelled from Booked):
+  `5ZPCcM3vwvxNV4hxkv4jkBV35DXDt6BRgXkgkogALffdUA6KGMKKcoxpVCKo2urG3bVC22T2iWq2s6VLCCr44VM1`
+
+Both checkable at `solscan.io/tx/<signature>?cluster=devnet`.
+
+What the run proved, in order:
+
+1. Operator registration works end to end: a new hub (`hub_5feeb9d42e86`), a pad under it,
+   and a drone into its fleet, all through the public API.
+2. Booking pays on Devnet and records the order (`order_84710d9c70260829`).
+3. **Guards hold**: `fly` from `Booked`, `confirm` before arrival (even with the *correct*
+   code), and `unlock` of a non-locked order are all rejected with 409s.
+4. The legal sequence `assign → fly → arrive` moves the order through each state, and
+   `cancel` is refused once a drone is assigned.
+5. Five wrong delivery codes lock the order — and while locked, **even the correct code is
+   rejected**. That last check matters: an earlier revision had a bug where a correct code
+   bypassed the lockout, found by re-reading the transition handler and fixed before this run.
+6. Operator `force_unlock` returns the order to `Arrived`; the correct code then delivers it;
+   re-confirming a delivered order is rejected.
+7. A second booking cancels cleanly from `Booked`; double-cancel and assigning a cancelled
+   order are both rejected.
+
+Bugs found and fixed during this hardening pass, for the record:
+
+- The order page's progress bar rendered a `Locked` order as fully delivered (status index
+  overflow). Locked now displays at the Arrived stage; Cancelled/Expired show a distinct
+  closed state.
+- Status transitions did no current-state validation at the API layer — any action was
+  accepted from any state. All transitions are now guarded.
+- The lockout could be bypassed by submitting the correct code while locked. Confirm now
+  requires `Arrived` status outright.
+
 ## Why this isn't the original on-chain-program plan
 
 The project was designed around a custom Anchor program (`veritair_network`) that would enforce
